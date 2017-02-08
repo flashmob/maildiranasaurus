@@ -2,7 +2,7 @@
 
 ![Dino](/dino.png)
 
-## RooooaaaarrrRRRRR!
+## RoaaaarrrRRRRR!
 
 This is a test to get an insigit into using go-guerrilla as a package.
 
