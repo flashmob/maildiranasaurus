@@ -6,10 +6,9 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "guerrillad",
-	Short: "small SMTP server",
-	Long: `It's a small SMTP server written in Go, for the purpose of receiving large volumes of email.
-Written for GuerrillaMail.com which processes tens of thousands of emails every hour.`,
+	Use:   "maildiranasaurus",
+	Short: "SMTP server using maildir",
+	Long: `It's a small SMTP server uisng go-guerrilla as a package to save email to maildir.`,
 	Run: nil,
 }
 
