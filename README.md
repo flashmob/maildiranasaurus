@@ -1,4 +1,4 @@
-# MailDirRanasaurus
+# Maildiranasaurus
 
 ![Dino](/dino.png)
 
