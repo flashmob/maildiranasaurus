@@ -8,8 +8,8 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "maildiranasaurus",
 	Short: "SMTP server using maildir",
-	Long: `It's a small SMTP server uisng go-guerrilla as a package to save email to maildir.`,
-	Run: nil,
+	Long:  `It's a small SMTP server uisng go-guerrilla as a package to save email to maildir.`,
+	Run:   nil,
 }
 
 var (

@@ -1,8 +1,8 @@
 package maildiranasaurus
 
 import (
-	"github.com/flashmob/go-guerrilla/backends"
 	"fmt"
+	"github.com/flashmob/go-guerrilla/backends"
 )
 
 // custom configuration we will parse from the json

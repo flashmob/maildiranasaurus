@@ -21,7 +21,8 @@ dependencies:
 	$(GO_VARS) $(GO) list -f='{{ join .Deps "\n" }}' $(ROOT)/cmd/maildiranasaurus | grep -v $(ROOT) | tr '\n' ' ' | $(GO_VARS) xargs $(GO) get -u -v
 	$(GO_VARS) $(GO) list -f='{{ join .Deps "\n" }}' $(ROOT)/cmd/maildiranasaurus | grep -v $(ROOT) | tr '\n' ' ' | $(GO_VARS) xargs $(GO) install -v
 
-maildiranasaurus: *.go */*.go */*/*.go
+#maildiranasaurus: *.go */*.go */*/*.go
+maildiranasaurus: *.go */*/*.go
 	$(GO_VARS) $(GO) build -o="maildiranasaurus" -ldflags="$(LD_FLAGS)" $(ROOT)/cmd/maildiranasaurus
 
 test: *.go */*.go */*/*.go
