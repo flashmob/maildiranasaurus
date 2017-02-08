@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	defaultPidFile = "/var/run/go-guerrilla.pid"
+	defaultPidFile = "/var/run/maildiranasaurus.pid"
 )
 
 var (
@@ -45,7 +45,7 @@ func init() {
 		mainlog.WithError(logOpenError).Errorf("Failed creating a logger to %s", log.OutputStderr)
 	}
 	serveCmd.PersistentFlags().StringVarP(&configPath, "config", "c",
-		"goguerrilla.conf", "Path to the configuration file")
+		"maildiranasaurus.conf", "Path to the configuration file")
 	// intentionally didn't specify default pidFile; value from config is used if flag is empty
 	serveCmd.PersistentFlags().StringVarP(&pidFile, "pidFile", "p",
 		"", "Path to the pid file")
