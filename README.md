@@ -40,6 +40,6 @@ Working from left to right, i.e. mail will be saved using the MailDir processor
 
 `maildir_user_map` - user settings. `<username>=<user id>:<group id>` comma separated
 
-`maildir_path` - the `[user]` part will be replaced with with the actual user
+`maildir_path` - the `[user]` part will be replaced with with the actual user from maildir_user_map once the config is loaded. Usually, no need to change this as the default is conventional. 
 
-`save_workers_size` - how many dinosaur workers to spawn
+`save_workers_size` - how many dinosaur workers to spawn. Roaaaar!
