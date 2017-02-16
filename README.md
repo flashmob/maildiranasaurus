@@ -1,3 +1,5 @@
+Project status: WIP, Maildiranasaurus is still hatching! Almost done...
+
 # Maildiranasaurus
 
 ![Dino](/dino.png)
