@@ -4,7 +4,7 @@
 
 ## RoaaaarrrRRRRR!
 
-This is a test to get an insight into using go-guerrilla as a package.
+This started as a project to get an insight into using [go-guerrilla](https://github.com/flashmob/go-guerrilla) as a package.
 
 It is uses go-guerrilla with an Maildir backend. See [maildir.go](https://github.com/flashmob/maildiranasaurus/blob/master/maildir.go) how the Maildir processor was added!
 
