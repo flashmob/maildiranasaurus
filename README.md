@@ -6,13 +6,13 @@
 
 This is a test to get an insight into using go-guerrilla as a package.
 
-It is uses go-guerrilla with an Maildir backend. See maildir.go how the Maildir processor was added!
+It is uses go-guerrilla with an Maildir backend. See [maildir.go](https://github.com/flashmob/maildiranasaurus/blob/master/maildir.go) how the Maildir processor was added!
 
 ## Building
 
 You'll need GNU make and Go installed
 
-`make maildirasaurus`
+    $make maildirasaurus
 
 ## Running
 
