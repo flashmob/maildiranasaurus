@@ -12,7 +12,7 @@ It is uses go-guerrilla with an Maildir backend. See [maildir.go](https://github
 
 You'll need GNU make and Go installed
 
-    $make maildirasaurus
+     $ make maildirasaurus
 
 ## Running
 
