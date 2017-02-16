@@ -35,11 +35,11 @@ Customize your servers, and customize your backend_config like so:
         "log_received_mails" : false
     },
     
-`process_stack` - a line of stacked processors (decorators). 
+`process_stack` - a line of stacked processors (decorators) that work on the email envelope. 
 Working from left to right, i.e. mail will be saved using the MailDir processor
 
-`maildir_user_map` - user settings. <username>=<user id>:<group id> comma separated
+`maildir_user_map` - user settings. `<username>=<user id>:<group id>` comma separated
 
-`maildir_path` - the [user] part will be replaced with with the actual user
+`maildir_path` - the `[user]` part will be replaced with with the actual user
 
 `save_workers_size` - how many dinosaur workers to spawn
