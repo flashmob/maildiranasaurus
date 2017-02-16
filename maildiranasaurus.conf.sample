@@ -1,18 +1,18 @@
 {
     "log_file" : "stderr",
-    "log_level" : "info",
-    "allowed_hosts": [
-      "guerrillamail.com",
-      "guerrillamailblock.com",
-      "sharklasers.com",
-      "guerrillamail.net",
-      "guerrillamail.org"
-    ],
-    "pid_file" : "/var/run/go-guerrilla.pid",
-    "backend_name": "dummy",
-    "backend_config": {
-        "log_received_mails": true
-    },
+    "log_level" : "debug",
+    "pid_file" : "/tmp/go-guerrilla.pid",
+    "allowed_hosts": ["guerrillamail.com","guerrillamailblock.com","sharklasers.com","guerrillamail.net","guerrillamail.org"],
+    "backend_name" : "guerrilla-db-redis",
+    "backend_config" :
+        {
+            "process_line": "HeadersParser|Debugger|Hasher|Header|MailDir",
+            "maildir_user_map" : "test=1002:2003,guerrilla=1001:1001,flashmob=1000:1000",
+            "maildir_path" : "/home/[user]/Maildir",
+            "save_workers_size" : 1,
+            "primary_mail_host":"sharklasers.com",
+            "log_received_mails" : false
+        },
     "servers" : [
         {
             "is_enabled" : true,

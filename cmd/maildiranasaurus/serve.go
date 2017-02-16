@@ -7,6 +7,7 @@ import (
 	"github.com/flashmob/go-guerrilla"
 	"github.com/flashmob/go-guerrilla/backends"
 	"github.com/flashmob/go-guerrilla/log"
+	"github.com/flashmob/maildiranasaurus"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
@@ -51,6 +52,8 @@ func init() {
 		"", "Path to the pid file")
 
 	rootCmd.AddCommand(serveCmd)
+
+	maildiranasaurus.UseMailDir()
 }
 
 func sigHandler(app guerrilla.Guerrilla) {
@@ -96,8 +99,7 @@ func subscribeBackendEvent(event guerrilla.Event, backend backends.Backend, app 
 		}
 		backend, err = backends.New(cmdConfig.BackendName, cmdConfig.BackendConfig, logger)
 		if err != nil {
-			logger.WithError(err).Fatalf("Error while loading the backend %q",
-				cmdConfig.BackendName)
+			logger.WithError(err).Fatal("Error while loading the backend")
 		} else {
 			logger.Info("Backend started:", cmdConfig.BackendName)
 		}
@@ -144,12 +146,12 @@ func serve(cmd *cobra.Command, args []string) {
 	if err != nil {
 		mainlog.WithError(err).Error("Error(s) when starting server(s)")
 	}
-	subscribeBackendEvent(guerrilla.EvConfigBackendConfig, backend, app)
-	subscribeBackendEvent(guerrilla.EvConfigBackendName, backend, app)
+	subscribeBackendEvent(guerrilla.EventConfigBackendConfig, backend, app)
+	subscribeBackendEvent(guerrilla.EventConfigBackendConfig, backend, app)
 	// Write out our PID
 	writePid(cmdConfig.PidFile)
 	// ...and write out our pid whenever the file name changes in the config
-	app.Subscribe(guerrilla.EvConfigPidFile, func(ac *guerrilla.AppConfig) {
+	app.Subscribe(guerrilla.EventConfigBackendConfig, func(ac *guerrilla.AppConfig) {
 		writePid(ac.PidFile)
 	})
 	// change the logger from stdrerr to one from config
@@ -184,10 +186,10 @@ func (c *CmdConfig) load(jsonBytes []byte) error {
 func (c *CmdConfig) emitChangeEvents(oldConfig *CmdConfig, app guerrilla.Guerrilla) {
 	// has backend changed?
 	if !reflect.DeepEqual((*c).BackendConfig, (*oldConfig).BackendConfig) {
-		app.Publish(guerrilla.EvConfigBackendConfig, c)
+		app.Publish(guerrilla.EventConfigBackendConfig, c)
 	}
 	if c.BackendName != oldConfig.BackendName {
-		app.Publish(guerrilla.EvConfigBackendName, c)
+		app.Publish(guerrilla.EventConfigBackendConfig, c)
 	}
 	// call other emitChangeEvents
 	c.AppConfig.EmitChangeEvents(&oldConfig.AppConfig, app)
