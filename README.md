@@ -19,7 +19,7 @@ You'll need GNU make and Go installed
 copy maildiranasaurus.conf.sample to maildiranasaurus.conf
 customize it to how you like it, then:
 
-./maildiranasaurus serve
+`./maildiranasaurus serve`
 
 ## Config
 
