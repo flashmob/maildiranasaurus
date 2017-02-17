@@ -4,11 +4,17 @@ import (
 	b "github.com/flashmob/go-guerrilla/backends"
 	"github.com/flashmob/go-guerrilla/envelope"
 	"github.com/flashmob/go-maildir"
-	"os"
 	"os/user"
 	"strconv"
 	"strings"
+	"sync"
+	"os"
+	"time"
+	"errors"
+	"fmt"
 )
+
+const MailDirFilePerms = 0600
 
 func init() {
 	// example, instead of using UseMailDir()
@@ -22,8 +28,95 @@ func UseMailDir() {
 }
 
 type maildirConfig struct {
+	// maildir_path may contain a [user] placeholder. This will be substituted at run time
+	// eg /home/[user]/Maildir will get substituted to /home/test/Maildir for test@example.com
 	Path    string `json:"maildir_path"`
+	// This is a string holding user to group/id mappings - in other words, the recipient table
+	// Each record separated by ","
+	// Records have the following format: <username>=<id>:<group>
+	// Example: "test=1002:2003,guerrilla=1001:1001"
 	UserMap string `json:"maildir_user_map"`
+}
+
+type MailDir struct {
+	userMap map[string][]int
+	dirs map[string]*maildir.Maildir
+	config  *maildirConfig
+}
+
+// check to see if we have configured
+func (m *MailDir) checkUsers(rcpt []envelope.EmailAddress, mailDirs map[string]*maildir.Maildir) bool {
+	for i:=range rcpt {
+		if _ , ok := mailDirs[rcpt[i].User]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+var mdirMux sync.Mutex
+
+// initDirs creates the mail dir folders if they haven't been created already
+func (m *MailDir) initDirs() error {
+	if m.dirs == nil {
+		m.dirs = make (map[string]*maildir.Maildir, 0)
+	}
+	// initialize some maildirs
+	mdirMux.Lock()
+	defer mdirMux.Unlock()
+	for str, ids := range m.userMap {
+		path := strings.Replace(m.config.Path, "[user]", str, 1)
+		if mdir, err := maildir.NewWithPerm(path, true, MailDirFilePerms, ids[0], ids[1]); err == nil {
+			m.dirs[str] = mdir
+		} else {
+			b.Log().WithError(err).Error("could not create Maildir. Please check the config")
+			return err
+		}
+	}
+	return nil
+}
+
+// validateRcpt validates if the user u is valid
+// not currently used, accepting pull requests for those who want to get their hands dirty ;-)
+func (m *MailDir) validateRcpt(u string) bool {
+
+	mdir , ok := m.dirs[u]
+	if !ok {
+		return false
+	}
+	if _, err := os.Stat(mdir.Path); err != nil {
+		return false;
+	} else {
+		// TDOD not sure of another way of testing to see if the directory is writable
+		test := mdir.Path + "/test123" + string(time.Now().UnixNano())
+		if fd, err := os.Create(test); err != nil {
+			return false
+		} else {
+			fd.Close()
+			os.Remove(test)
+		}
+	}
+	return ok
+
+}
+
+func newMailDir(config *maildirConfig) (*MailDir, error) {
+	m := &MailDir{}
+	m.config = config
+	m.userMap = usermap(m.config.UserMap)
+	if strings.Index(m.config.Path, "~/") == 0 {
+		// expand the ~/ to home dir
+		usr, err := user.Current()
+		if err != nil {
+			b.Log().WithError(err).Error("could not expand ~/ to homedir")
+			return nil, err
+		}
+		m.config.Path = usr.HomeDir + m.config.Path[1:]
+	}
+	if err := m.initDirs(); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 var maildirProcessor = func() b.Decorator {
@@ -32,10 +125,8 @@ var maildirProcessor = func() b.Decorator {
 
 	// config will be populated by the initFunc
 	var (
-		config  *maildirConfig
-		userMap map[string][]int
+		m *MailDir
 	)
-	mailDirs := make(map[string]*maildir.Maildir, 1)
 	// initFunc is an initializer function which is called when our processor gets created.
 	// It gets called for every worker
 	initFunc := b.Initialize(func(backendConfig b.BackendConfig) error {
@@ -44,82 +135,52 @@ var maildirProcessor = func() b.Decorator {
 		if err != nil {
 			return err
 		}
-		config = bcfg.(*maildirConfig)
-
-		if strings.Index(config.Path, "~/") == 0 {
-			// expand the ~/ to home dir
-			usr, err := user.Current()
-			if err != nil {
-				return err
-			}
-			config.Path = usr.HomeDir + config.Path[1:]
-		}
-
-		if err != nil {
+		c := bcfg.(*maildirConfig)
+		m, err = newMailDir(c);
+		if  err!= nil {
 			return err
-		}
-		userMap = usermap(config.UserMap)
-		// initialize some maildirs
-		for str, ids := range userMap {
-			path := strings.Replace(config.Path, "[user]", str, 1)
-			if mdir, err := maildir.NewWithPerm(path, true, 0600, ids[0], ids[1]); err == nil {
-				mailDirs[str] = mdir
-			}
-
 		}
 		return nil
 	})
 	// register our initializer
 	b.Service.AddInitializer(initFunc)
 
+	// Todo would be great if to add it as a new Service, so the SMTP server could ask the backend
+	// the backend could call all the validators to ask if user is valid..
+	//b.Service.AddRcptValidator(rcptValidate)
+
 	return func(c b.Processor) b.Processor {
-		// The function will be called on each email.
+		// The function will be called on each email transaction.
 		// On success, it forwards to the next step in the processor call-stack,
 		// or returns with an error if failed
 		return b.ProcessorFunc(func(e *envelope.Envelope) (b.BackendResult, error) {
-
-			// using a for loop in Go is all the range these days.
+			// check the recipients
 			for i := range e.RcptTo {
 				u := strings.ToLower(e.RcptTo[i].User)
-
-				// get the cached maildir
-				mdir, ok := mailDirs[u]
-				if !ok {
-					usr, ok := userMap[u]
-					if !ok {
-						continue
-						// no such user
-						//return b.NewBackendResult(fmt.Sprintf("554 Error: no such user [%s]", u)), errors.New("no such user " + u)
-					}
-
-					b.Log().Infof("uid %d guid %d", usr[0], usr[1])
-					path := strings.Replace(config.Path, "[user]", u, 1)
-					if info, infoErr := os.Stat(path); infoErr != nil {
-						b.Log().WithError(infoErr).Error("Cannot reach user's directory")
-						//return b.NewBackendResult(fmt.Sprintf("554 Error: %s", infoErr.Error())), infoErr
-						continue
-					} else {
-
-						b.Log().Info(info)
-					}
-					mdir, err := maildir.NewWithPerm(path, true, 0600, usr[0], usr[1])
-					if err != nil {
-						//return b.NewBackendResult(fmt.Sprintf("554 Error: %s", err.Error())), err
-						continue
-					}
-					// cache it for later
-					mailDirs[u] = mdir
+				if _, ok := m.dirs[u]; !ok {
+					err := errors.New("no such user: "+u)
+					b.Log().WithError(err).Info("recipient not configured: ", u)
+					return b.NewBackendResult(fmt.Sprintf("554 Error: %s", err)), err
 				}
-
-				if filename, err := mdir.CreateMail(e.NewReader()); err != nil {
-					b.Log().WithError(err).Info("Could not save email")
-					//return b.NewBackendResult(fmt.Sprintf("554 Error: %s", err.Error())), err
-				} else {
-					b.Log().Info("saved email as", filename)
-				}
-
 			}
-
+			for i := range e.RcptTo {
+				u := strings.ToLower(e.RcptTo[i].User)
+				mdir, ok := m.dirs[u]
+				if !ok {
+					// no such user
+					continue
+				}
+				if filename, err := mdir.CreateMail(e.NewReader()); err != nil {
+					b.Log().WithError(err).Error("Could not save email")
+					if i ==0 {
+						// todo need a better to check if the directory has write perms
+						// to catch the error early.
+						return b.NewBackendResult(fmt.Sprintf("554 Error: could not save email for [%s]", u)), err
+					}
+				} else {
+					b.Log().Debug("saved email as", filename)
+				}
+			}
 
 			// continue to the next Processor in the decorator chain
 			return c.Process(e)
