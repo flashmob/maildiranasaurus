@@ -53,7 +53,8 @@ func init() {
 
 	rootCmd.AddCommand(serveCmd)
 
-	maildiranasaurus.UseMailDir()
+	// add the maildiranasaurus.MaildirProcessor to be identified as "MailDir"
+	backends.Svc.AddProcessor("MailDir", maildiranasaurus.MaildirProcessor)
 }
 
 func sigHandler(app guerrilla.Guerrilla) {
@@ -88,20 +89,13 @@ func sigHandler(app guerrilla.Guerrilla) {
 	}
 }
 
-func subscribeBackendEvent(event guerrilla.Event, backend backends.Backend, app guerrilla.Guerrilla) {
-
+func subscribeBackendEvent(event guerrilla.Event, app guerrilla.Guerrilla) {
 	app.Subscribe(event, func(cmdConfig *CmdConfig) {
 		logger, _ := log.GetLogger(cmdConfig.LogFile)
 		var err error
-		if err = backend.Shutdown(); err != nil {
+		if err = backends.GetBackend().Shutdown(); err != nil {
 			logger.WithError(err).Warn("Backend failed to shutdown")
 			return
-		}
-		backend, err = backends.New(cmdConfig.BackendName, cmdConfig.BackendConfig, logger)
-		if err != nil {
-			logger.WithError(err).Fatal("Error while loading the backend")
-		} else {
-			logger.Info("Backend started:", cmdConfig.BackendName)
 		}
 	})
 }
@@ -128,15 +122,9 @@ func serve(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	// Backend setup
-	var backend backends.Backend
-	backend, err = backends.New(cmdConfig.BackendName, cmdConfig.BackendConfig, mainlog)
-	if err != nil {
-		mainlog.WithError(err).Fatalf("Error while loading the backend %q",
-			cmdConfig.BackendName)
-	}
 
-	app, err := guerrilla.New(&cmdConfig.AppConfig, backend, mainlog)
+	b, err := backends.New("gateway", cmdConfig.BackendConfig, mainlog)
+	app, err := guerrilla.New(&cmdConfig.AppConfig, b, mainlog)
 	if err != nil {
 		mainlog.WithError(err).Error("Error(s) when creating new server(s)")
 	}
@@ -146,8 +134,7 @@ func serve(cmd *cobra.Command, args []string) {
 	if err != nil {
 		mainlog.WithError(err).Error("Error(s) when starting server(s)")
 	}
-	subscribeBackendEvent(guerrilla.EventConfigBackendConfig, backend, app)
-	subscribeBackendEvent(guerrilla.EventConfigBackendConfig, backend, app)
+	subscribeBackendEvent(guerrilla.EventConfigBackendConfig, app)
 	// Write out our PID
 	writePid(cmdConfig.PidFile)
 	// ...and write out our pid whenever the file name changes in the config
@@ -169,7 +156,6 @@ func serve(cmd *cobra.Command, args []string) {
 // the the command line interface.
 type CmdConfig struct {
 	guerrilla.AppConfig
-	BackendName   string                 `json:"backend_name"`
 	BackendConfig backends.BackendConfig `json:"backend_config"`
 }
 
@@ -188,9 +174,7 @@ func (c *CmdConfig) emitChangeEvents(oldConfig *CmdConfig, app guerrilla.Guerril
 	if !reflect.DeepEqual((*c).BackendConfig, (*oldConfig).BackendConfig) {
 		app.Publish(guerrilla.EventConfigBackendConfig, c)
 	}
-	if c.BackendName != oldConfig.BackendName {
-		app.Publish(guerrilla.EventConfigBackendConfig, c)
-	}
+
 	// call other emitChangeEvents
 	c.AppConfig.EmitChangeEvents(&oldConfig.AppConfig, app)
 }

@@ -9,23 +9,11 @@ import (
 	"strings"
 	"sync"
 	"os"
-	"time"
-	"errors"
 	"fmt"
+	"github.com/flashmob/go-guerrilla/response"
 )
 
 const MailDirFilePerms = 0600
-
-func init() {
-	// example, instead of using UseMailDir()
-	//b.Service.AddProcessor("MailDir", maildirProcessor)
-}
-
-// Call UseMailDir to "import" the maildir processor into your program.
-// alternatively, use the init() way above
-func UseMailDir() {
-	b.Service.AddProcessor("MailDir", maildirProcessor)
-}
 
 type maildirConfig struct {
 	// maildir_path may contain a [user] placeholder. This will be substituted at run time
@@ -76,28 +64,17 @@ func (m *MailDir) initDirs() error {
 	return nil
 }
 
-// validateRcpt validates if the user u is valid
-// not currently used, accepting pull requests for those who want to get their hands dirty ;-)
-func (m *MailDir) validateRcpt(u string) bool {
 
+func (m *MailDir) validateRcpt(addr *envelope.EmailAddress) b.RcptError {
+	u := strings.ToLower(addr.User)
 	mdir , ok := m.dirs[u]
 	if !ok {
-		return false
+		return b.NoSuchUser
 	}
 	if _, err := os.Stat(mdir.Path); err != nil {
-		return false;
-	} else {
-		// TDOD not sure of another way of testing to see if the directory is writable
-		test := mdir.Path + "/test123" + string(time.Now().UnixNano())
-		if fd, err := os.Create(test); err != nil {
-			return false
-		} else {
-			fd.Close()
-			os.Remove(test)
-		}
+		return b.StorageNotAvailable
 	}
-	return ok
-
+	return nil
 }
 
 func newMailDir(config *maildirConfig) (*MailDir, error) {
@@ -117,75 +94,6 @@ func newMailDir(config *maildirConfig) (*MailDir, error) {
 		return nil, err
 	}
 	return m, nil
-}
-
-var maildirProcessor = func() b.Decorator {
-
-	// The following initialization is run when the program first starts
-
-	// config will be populated by the initFunc
-	var (
-		m *MailDir
-	)
-	// initFunc is an initializer function which is called when our processor gets created.
-	// It gets called for every worker
-	initFunc := b.Initialize(func(backendConfig b.BackendConfig) error {
-		configType := b.BaseConfig(&maildirConfig{})
-		bcfg, err := b.Service.ExtractConfig(backendConfig, configType)
-		if err != nil {
-			return err
-		}
-		c := bcfg.(*maildirConfig)
-		m, err = newMailDir(c);
-		if  err!= nil {
-			return err
-		}
-		return nil
-	})
-	// register our initializer
-	b.Service.AddInitializer(initFunc)
-
-	// Todo would be great if to add it as a new Service, so the SMTP server could ask the backend
-	// the backend could call all the validators to ask if user is valid..
-	//b.Service.AddRcptValidator(rcptValidate)
-
-	return func(c b.Processor) b.Processor {
-		// The function will be called on each email transaction.
-		// On success, it forwards to the next step in the processor call-stack,
-		// or returns with an error if failed
-		return b.ProcessorFunc(func(e *envelope.Envelope) (b.BackendResult, error) {
-			// check the recipients
-			for i := range e.RcptTo {
-				u := strings.ToLower(e.RcptTo[i].User)
-				if _, ok := m.dirs[u]; !ok {
-					err := errors.New("no such user: "+u)
-					b.Log().WithError(err).Info("recipient not configured: ", u)
-					return b.NewBackendResult(fmt.Sprintf("554 Error: %s", err)), err
-				}
-			}
-			for i := range e.RcptTo {
-				u := strings.ToLower(e.RcptTo[i].User)
-				mdir, ok := m.dirs[u]
-				if !ok {
-					// no such user
-					continue
-				}
-				if filename, err := mdir.CreateMail(e.NewReader()); err != nil {
-					b.Log().WithError(err).Error("Could not save email")
-					if i ==0 {
-						// todo need a better to check if the directory has write perms
-						// to catch the error early.
-						return b.NewBackendResult(fmt.Sprintf("554 Error: could not save email for [%s]", u)), err
-					}
-				} else {
-					b.Log().Debug("saved email as", filename)
-				}
-			}
-
-			// continue to the next Processor in the decorator chain
-			return c.Process(e)
-		})
-	}
 }
 
 // usermap parses the usermap config strings and returns the result in a map
@@ -213,3 +121,77 @@ func usermap(usermap string) (ret map[string][]int) {
 	}
 	return
 }
+
+var MaildirProcessor = func() b.Decorator {
+
+	// The following initialization is run when the program first starts
+
+	// config will be populated by the initFunc
+	var (
+		m *MailDir
+	)
+	// initFunc is an initializer function which is called when our processor gets created.
+	// It gets called for every worker
+	initializer := b.Initialize(func(backendConfig b.BackendConfig) error {
+		configType := b.BaseConfig(&maildirConfig{})
+		bcfg, err := b.Svc.ExtractConfig(backendConfig, configType)
+
+		if err != nil {
+			return err
+		}
+		c := bcfg.(*maildirConfig)
+		m, err = newMailDir(c);
+		if  err!= nil {
+			return err
+		}
+		return nil
+	})
+	// register our initializer
+	b.Svc.AddInitializer(initializer)
+
+
+	return func(c b.Processor) b.Processor {
+		// The function will be called on each email transaction.
+		// On success, it forwards to the next step in the processor call-stack,
+		// or returns with an error if failed
+		return b.ProcessorFunc(func(e *envelope.Envelope, task b.SelectTask) (b.Result, error) {
+			if task == b.TaskValidateRcpt {
+				// Check the recipients for each RCPT command.
+				// This is called each time a recipient is added,
+				// validate only the _last_ recipient that was appended
+				if size := len(e.RcptTo); size > 0 {
+					// since
+					if err := m.validateRcpt(&e.RcptTo[size-1]); err != nil {
+						b.Log().WithError(b.NoSuchUser).Info("recipient not configured: ", e.RcptTo[size-1].User)
+						return b.NewResult(
+							response.Canned.FailNoSenderDataCmd),
+							b.NoSuchUser
+					}
+
+				}
+				return c.Process(e, task)
+			} else if task == b.TaskSaveMail {
+				for i := range e.RcptTo {
+					u := strings.ToLower(e.RcptTo[i].User)
+					mdir, ok := m.dirs[u]
+					if !ok {
+						// no such user
+						continue
+					}
+					if filename, err := mdir.CreateMail(e.NewReader()); err != nil {
+						b.Log().WithError(err).Error("Could not save email")
+						return b.NewResult(fmt.Sprintf("554 Error: could not save email for [%s]", u)), err
+					} else {
+						b.Log().Debug("saved email as", filename)
+					}
+				}
+				// continue to the next Processor in the decorator chain
+				return c.Process(e, task)
+			} else {
+				return c.Process(e, task)
+			}
+
+		})
+	}
+}
+
