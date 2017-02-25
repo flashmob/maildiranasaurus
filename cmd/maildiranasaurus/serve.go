@@ -122,7 +122,6 @@ func serve(cmd *cobra.Command, args []string) {
 		}
 	}
 
-
 	b, err := backends.New("gateway", cmdConfig.BackendConfig, mainlog)
 	app, err := guerrilla.New(&cmdConfig.AppConfig, b, mainlog)
 	if err != nil {
