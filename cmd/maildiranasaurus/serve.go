@@ -53,7 +53,7 @@ func init() {
 
 	rootCmd.AddCommand(serveCmd)
 
-	// add the maildiranasaurus.MaildirProcessor to be identified as "MailDir"
+	// add the Processor to be identified as "MailDir"
 	backends.Svc.AddProcessor("MailDir", maildir_processor.Processor)
 }
 
