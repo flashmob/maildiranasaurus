@@ -8,7 +8,9 @@ Project status: WIP, Maildiranasaurus is still hatching! Almost done...
 
 This started as a project to get an insight into using [go-guerrilla](https://github.com/flashmob/go-guerrilla) as a package.
 
-It is uses go-guerrilla with an Maildir backend. See [maildir.go](https://github.com/flashmob/maildiranasaurus/blob/master/maildir.go) how the Maildir processor was added!
+It is uses go-guerrilla with an Maildir backend. See [serve.go](https://github.com/flashmob/maildiranasaurus/blob/master/cmd/maildiranasaurus/serve.go) how the Maildir processor was added!
+
+The Maildir processor repo lives here: https://github.com/flashmob/maildir-processor
 
 ## Building
 

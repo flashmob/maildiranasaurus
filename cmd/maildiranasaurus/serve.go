@@ -7,7 +7,7 @@ import (
 	"github.com/flashmob/go-guerrilla"
 	"github.com/flashmob/go-guerrilla/backends"
 	"github.com/flashmob/go-guerrilla/log"
-	"github.com/flashmob/maildiranasaurus"
+	"github.com/flashmob/maildir-processor"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
@@ -54,7 +54,7 @@ func init() {
 	rootCmd.AddCommand(serveCmd)
 
 	// add the maildiranasaurus.MaildirProcessor to be identified as "MailDir"
-	backends.Svc.AddProcessor("MailDir", maildiranasaurus.MaildirProcessor)
+	backends.Svc.AddProcessor("MailDir", maildir_processor.Processor)
 }
 
 func sigHandler(app guerrilla.Guerrilla) {
