@@ -122,7 +122,7 @@ func serve(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	b, err := backends.New("gateway", cmdConfig.BackendConfig, mainlog)
+	b, err := backends.New(cmdConfig.BackendConfig, mainlog)
 	app, err := guerrilla.New(&cmdConfig.AppConfig, b, mainlog)
 	if err != nil {
 		mainlog.WithError(err).Error("Error(s) when creating new server(s)")
