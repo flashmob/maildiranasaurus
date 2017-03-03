@@ -1,9 +1,30 @@
+/*
+
+                 _..--+~/@-~--.
+             _-=~      (  .   "}
+          _-~     _.--=.\ \""""
+        _~      _-       \ \_\
+       =      _=          '--'
+      '      =                             .
+     :      :       ____                   '=_. ___
+___  |      ;                            ____ '~--.~.
+     ;      ;                               _____  } |
+  ___=       \ ___ __     __..-...__           ___/__/__
+     :        =_     _.-~~          ~~--.__
+_____ \         ~-+-~                   ___~=_______
+     ~@#~~ == ...______ __ ___ _--~~--_
+                                                    .=
+Art by Peter Weighill
+
+*/
+
 package main
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/flashmob/fastcgi-processor"
 	"github.com/flashmob/go-guerrilla"
 	"github.com/flashmob/go-guerrilla/backends"
 	"github.com/flashmob/go-guerrilla/log"
@@ -55,6 +76,8 @@ func init() {
 
 	// add the Processor to be identified as "MailDir"
 	backends.Svc.AddProcessor("MailDir", maildir_processor.Processor)
+
+	backends.Svc.AddProcessor("FastCGI", fcgi_processor.Processor)
 }
 
 func sigHandler(app guerrilla.Guerrilla) {
@@ -97,20 +120,39 @@ func subscribeBackendEvent(event guerrilla.Event, app guerrilla.Guerrilla) {
 			logger.WithError(err).Warn("Backend failed to shutdown")
 			return
 		}
+		// init a new backend
+		backend := backends.GetBackend()
+		if newBackend, newErr := backends.New(cmdConfig.BackendConfig, logger); newErr != nil {
+			// Revert to old backend config
+			logger.WithError(newErr).Error("Error while loading the backend")
+			err = backend.Reinitialize()
+			if err != nil {
+				logger.WithError(err).Fatal("failed to revert to old backend config")
+				return
+			}
+			err = backend.Start()
+			if err != nil {
+				logger.WithError(err).Fatal("failed to start backend with old config")
+				return
+			}
+			logger.Info("reverted to old backend config")
+		} else {
+			// swap to the bew backend (assuming old backend was shutdown so it can be safely swapped)
+			backend.Start()
+			backend = newBackend
+			logger.Info("new backend started")
+		}
 	})
 }
 
 func serve(cmd *cobra.Command, args []string) {
 	logVersion()
-
 	err := readConfig(configPath, pidFile, &cmdConfig)
 	if err != nil {
 		mainlog.WithError(err).Fatal("Error while reading config")
 	}
-
 	// Check that max clients is not greater than system open file limit.
 	fileLimit := getFileLimit()
-
 	if fileLimit > 0 {
 		maxClients := 0
 		for _, s := range cmdConfig.Servers {
@@ -121,14 +163,14 @@ func serve(cmd *cobra.Command, args []string) {
 				"Please increase your open file limit or decrease max clients.", maxClients, fileLimit)
 		}
 	}
-
 	b, err := backends.New(cmdConfig.BackendConfig, mainlog)
+	if err != nil {
+		mainlog.WithError(err).Fatalf("Error while loading the backend")
+	}
 	app, err := guerrilla.New(&cmdConfig.AppConfig, b, mainlog)
 	if err != nil {
 		mainlog.WithError(err).Error("Error(s) when creating new server(s)")
 	}
-
-	// start the app
 	err = app.Start()
 	if err != nil {
 		mainlog.WithError(err).Error("Error(s) when starting server(s)")
@@ -137,7 +179,7 @@ func serve(cmd *cobra.Command, args []string) {
 	// Write out our PID
 	writePid(cmdConfig.PidFile)
 	// ...and write out our pid whenever the file name changes in the config
-	app.Subscribe(guerrilla.EventConfigBackendConfig, func(ac *guerrilla.AppConfig) {
+	app.Subscribe(guerrilla.EventConfigPidFile, func(ac *guerrilla.AppConfig) {
 		writePid(ac.PidFile)
 	})
 	// change the logger from stdrerr to one from config
@@ -148,7 +190,6 @@ func serve(cmd *cobra.Command, args []string) {
 	}
 	app.SetLogger(mainlog)
 	sigHandler(app)
-
 }
 
 // Superset of `guerrilla.AppConfig` containing options specific
@@ -173,7 +214,6 @@ func (c *CmdConfig) emitChangeEvents(oldConfig *CmdConfig, app guerrilla.Guerril
 	if !reflect.DeepEqual((*c).BackendConfig, (*oldConfig).BackendConfig) {
 		app.Publish(guerrilla.EventConfigBackendConfig, c)
 	}
-
 	// call other emitChangeEvents
 	c.AppConfig.EmitChangeEvents(&oldConfig.AppConfig, app)
 }
