@@ -55,7 +55,7 @@ Working from left to right, i.e. mail will be saved using the MailDir processor
 #### Fast CGI (fcgi)
 
 FastCGI you say? Yes, an example of the FastCGI processor is included too.
-Useful if you want to deliver your emails to a php script (or other fstcgi gateway)
+Useful if you want to deliver your emails to a php script (or other fcgi gateway)
 
 Include the following fields in the "backend_config" object:
 
