@@ -1,5 +1,5 @@
 .idea
-#maildiranasaurus.conf
+maildiranasaurus.conf
 /maildiranasaurus
 vendor
 cmd/maildiranasaurus/_test
