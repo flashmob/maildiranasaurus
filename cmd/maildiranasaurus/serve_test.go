@@ -243,13 +243,13 @@ func sigKill() {
 func TestCmdConfigChangeEvents(t *testing.T) {
 
 	oldconf := &CmdConfig{}
-	oldconf.load([]byte(configJsonA))
+	oldconf.Load([]byte(configJsonA))
 
 	newconf := &CmdConfig{}
-	newconf.load([]byte(configJsonB))
+	newconf.Load([]byte(configJsonB))
 
 	newerconf := &CmdConfig{}
-	newerconf.load([]byte(configJsonC))
+	newerconf.Load([]byte(configJsonC))
 
 	expectedEvents := map[guerrilla.Event]bool{
 		guerrilla.EventConfigBackendConfig: false,
@@ -399,7 +399,7 @@ func TestServerAddEvent(t *testing.T) {
 	time.Sleep(testPauseDuration) // allow the server to start
 	// now change the config by adding a server
 	conf := &CmdConfig{}                                 // blank one
-	conf.load([]byte(configJsonA))                       // load configJsonA
+	conf.Load([]byte(configJsonA))                       // load configJsonA
 	newServer := conf.Servers[0]                         // copy the first server config
 	newServer.ListenInterface = "127.0.0.1:2526"         // change it
 	newConf := conf                                      // copy the cmdConfg
@@ -614,7 +614,7 @@ func TestAllowedHostsEvent(t *testing.T) {
 	// start the server by emulating the serve command
 	ioutil.WriteFile("configJsonD.json", []byte(configJsonD), 0644)
 	conf := &CmdConfig{}           // blank one
-	conf.load([]byte(configJsonD)) // load configJsonD
+	conf.Load([]byte(configJsonD)) // load configJsonD
 	cmd := &cobra.Command{}
 	configPath = "configJsonD.json"
 	var serveWG sync.WaitGroup
@@ -821,7 +821,7 @@ func TestBadTLSStart(t *testing.T) {
 		// next run the server
 		ioutil.WriteFile("configJsonD.json", []byte(configJsonD), 0644)
 		conf := &CmdConfig{}           // blank one
-		conf.load([]byte(configJsonD)) // load configJsonD
+		conf.Load([]byte(configJsonD)) // load configJsonD
 
 		cmd := &cobra.Command{}
 		configPath = "configJsonD.json"
@@ -861,7 +861,7 @@ func TestBadTLSReload(t *testing.T) {
 	// start the server by emulating the serve command
 	ioutil.WriteFile("configJsonD.json", []byte(configJsonD), 0644)
 	conf := &CmdConfig{}           // blank one
-	conf.load([]byte(configJsonD)) // load configJsonD
+	conf.Load([]byte(configJsonD)) // load configJsonD
 	cmd := &cobra.Command{}
 	configPath = "configJsonD.json"
 	var serveWG sync.WaitGroup
@@ -1016,7 +1016,7 @@ func TestDebugLevelChange(t *testing.T) {
 	// start the server by emulating the serve command
 	ioutil.WriteFile("configJsonD.json", []byte(configJsonD), 0644)
 	conf := &CmdConfig{}           // blank one
-	conf.load([]byte(configJsonD)) // load configJsonD
+	conf.Load([]byte(configJsonD)) // load configJsonD
 	conf.LogLevel = "debug"
 	cmd := &cobra.Command{}
 	configPath = "configJsonD.json"
