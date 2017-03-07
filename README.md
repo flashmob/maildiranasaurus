@@ -1,5 +1,9 @@
 Project status: WIP, Maildiranasaurus is still hatching! Almost done...
 
+
+[![Build Status](https://travis-ci.org/flashmob/MailDiranasaurus.svg?branch=master)](https://travis-ci.org/flashmob/MailDiranasaurus)
+
+
 # Maildiranasaurus
 
 ![Dino](/dino.png)
