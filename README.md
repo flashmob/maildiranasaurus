@@ -20,6 +20,7 @@ The Maildir processor repo lives here: https://github.com/flashmob/maildir-proce
 
 You'll need GNU make and Go installed
 
+     $ make dependencies
      $ make maildirasaurus
 
 ## Running
