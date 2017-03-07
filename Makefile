@@ -25,6 +25,6 @@ dependencies:
 maildiranasaurus: */*/*.go
 	$(GO_VARS) $(GO) build -o="maildiranasaurus" -ldflags="$(LD_FLAGS)" $(ROOT)/cmd/maildiranasaurus
 
-test: */*.go */*/*.go
-	$(GO_VARS) $(GO) test -v .
+test: */*/*.go
+	$(GO_VARS) $(GO) test -v ./cmd/maildiranasaurus
 

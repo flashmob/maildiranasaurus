@@ -7,7 +7,7 @@
 
 (art credits unknown)
 
- */
+*/
 package main
 
 import (

@@ -24,7 +24,6 @@ import (
 	"errors"
 	"github.com/flashmob/fastcgi-processor"
 	"github.com/flashmob/go-guerrilla"
-	"github.com/flashmob/go-guerrilla/backends"
 	"github.com/flashmob/go-guerrilla/log"
 	"github.com/flashmob/maildir-processor"
 	"github.com/spf13/cobra"
@@ -50,7 +49,6 @@ var (
 		Run:   serve,
 	}
 
-
 	signalChannel = make(chan os.Signal, 1) // for trapping SIG_HUP
 	mainlog       log.Logger
 
@@ -59,33 +57,28 @@ var (
 
 func init() {
 	// log to stderr on startup
-	var logOpenError error
-	if mainlog, logOpenError = log.GetLogger(log.OutputStderr.String()); logOpenError != nil {
-		mainlog.WithError(logOpenError).Errorf("Failed creating a logger to %s", log.OutputStderr)
+	var err error
+	mainlog, err = log.GetLogger(log.OutputStderr.String())
+	if err != nil {
+		mainlog.WithError(err).Errorf("Failed creating a logger to %s", log.OutputStderr)
 	}
+
 	serveCmd.PersistentFlags().StringVarP(&configPath, "config", "c",
 		"maildiranasaurus.conf", "Path to the configuration file")
 	// intentionally didn't specify default pidFile; value from config is used if flag is empty
 	serveCmd.PersistentFlags().StringVarP(&pidFile, "pidFile", "p",
 		"", "Path to the pid file")
-
 	rootCmd.AddCommand(serveCmd)
-
-	d = guerrilla.Daemon{Logger : mainlog}
-
-	// add the Processor to be identified as "MailDir"
-	backends.Svc.AddProcessor("MailDir", maildir_processor.Processor)
-
-	backends.Svc.AddProcessor("FastCGI", fcgi_processor.Processor)
 }
 
 func sigHandler() {
 	// handle SIGHUP for reloading the configuration while running
-	signal.Notify(signalChannel, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGKILL)
-
+	signal.Notify(signalChannel,
+		syscall.SIGHUP, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGKILL)
+	// Keep the daemon busy by waiting for signals to come
 	for sig := range signalChannel {
 		if sig == syscall.SIGHUP {
-			d.ReloadConfig(configPath)
+			d.ReloadConfigFile(configPath)
 		} else if sig == syscall.SIGUSR1 {
 			d.ReopenLogs()
 		} else if sig == syscall.SIGTERM || sig == syscall.SIGQUIT || sig == syscall.SIGINT {
@@ -100,9 +93,18 @@ func sigHandler() {
 	}
 }
 
-
 func serve(cmd *cobra.Command, args []string) {
 	logVersion()
+
+	// Here we initialize our Guerrilla Daemon
+	// See the reference docs here:
+	d = guerrilla.Daemon{Logger: mainlog}
+
+	// add the Processor to be identified as "MailDir"
+	d.AddProcessor("MailDir", maildir_processor.Processor)
+	// add the FastCGI processor
+	d.AddProcessor("FastCGI", fcgi_processor.Processor)
+
 	err := readConfig(configPath, pidFile)
 	if err != nil {
 		mainlog.WithError(err).Fatal("Error while reading config")
@@ -123,15 +125,7 @@ func serve(cmd *cobra.Command, args []string) {
 	err = d.Start()
 	if err != nil {
 		mainlog.WithError(err).Error("Error(s) when starting server(s)")
-	}
-
-	// write out our pid whenever the file name changes in the config
-	d.Subscribe(guerrilla.EventConfigPidFile, func(ac *guerrilla.AppConfig) {
-		d.WritePid()
-	})
-
-	if err := d.ChangeLog(); err == nil {
-		mainlog.Infof("main log configured to %s", d.Config.LogFile)
+		os.Exit(1)
 	}
 
 	sigHandler()
@@ -143,8 +137,6 @@ type CmdConfig struct {
 	guerrilla.AppConfig
 }
 
-
-
 func (c *CmdConfig) emitChangeEvents(oldConfig *CmdConfig, app guerrilla.Guerrilla) {
 	// if your CmdConfig has any extra fields, you can emit events here
 	// ...
@@ -153,7 +145,7 @@ func (c *CmdConfig) emitChangeEvents(oldConfig *CmdConfig, app guerrilla.Guerril
 	c.AppConfig.EmitChangeEvents(&oldConfig.AppConfig, app)
 }
 
-// ReadConfig which should be called at startup, or when a SIG_HUP is caught
+// ReadConfig which should be called at startup
 func readConfig(path string, pidFile string) error {
 
 	if err := d.ReadConfig(path); err != nil {
@@ -185,5 +177,3 @@ func getFileLimit() int {
 	}
 	return limit
 }
-
-

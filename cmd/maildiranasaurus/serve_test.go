@@ -19,6 +19,11 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"net"
+	"bufio"
+	"fmt"
+	"github.com/flashmob/maildir-processor"
+	"io"
 )
 
 var configJsonA = `
@@ -33,7 +38,7 @@ var configJsonA = `
       "guerrillamail.net",
       "guerrillamail.org"
     ],
-    "backend_name": "dummy",
+
     "backend_config": {
         "log_received_mails": true
     },
@@ -45,7 +50,7 @@ var configJsonA = `
             "private_key_file":"_test/mail2.guerrillamail.com.key.pem",
             "public_key_file":"_test/mail2.guerrillamail.com.cert.pem",
             "timeout":180,
-            "listen_interface":"127.0.0.1:25",
+            "listen_interface":"127.0.0.1:3535",
             "start_tls_on":true,
             "tls_always_on":false,
             "max_clients": 1000,
@@ -93,7 +98,7 @@ var configJsonB = `
             "private_key_file":"_test/mail2.guerrillamail.com.key.pem",
             "public_key_file":"_test/mail2.guerrillamail.com.cert.pem",
             "timeout":180,
-            "listen_interface":"127.0.0.1:25",
+            "listen_interface":"127.0.0.1:3535",
             "start_tls_on":true,
             "tls_always_on":false,
             "max_clients": 1000,
@@ -116,7 +121,7 @@ var configJsonC = `
       "guerrillamail.net",
       "guerrillamail.org"
     ],
-    "backend_name": "guerrilla-redis-db",
+
     "backend_config" :
         {
             "mysql_db":"gmail_mail",
@@ -137,7 +142,7 @@ var configJsonC = `
             "private_key_file":"_test/mail2.guerrillamail.com.key.pem",
             "public_key_file":"_test/mail2.guerrillamail.com.cert.pem",
             "timeout":180,
-            "listen_interface":"127.0.0.1:25",
+            "listen_interface":"127.0.0.1:3535",
             "start_tls_on":true,
             "tls_always_on":false,
             "max_clients": 1000,
@@ -207,6 +212,59 @@ var configJsonD = `
 }
 `
 
+
+var configJsonE = `
+{
+    "log_file" : "_test/testlog",
+    "log_level" : "debug",
+    "pid_file" : "./pidfile.pid",
+    "allowed_hosts": [
+      "guerrillamail.com",
+      "guerrillamailblock.com",
+      "sharklasers.com",
+      "guerrillamail.net",
+      "guerrillamail.org",
+      "grr.la"
+    ],
+
+    "backend_config": {
+        "process_stack": "HeadersParser|Debugger|Hasher|Header|MailDir",
+	"maildir_user_map" : "test=-1:-1",
+	"maildir_path" : "_test/Maildir",
+	"save_workers_size" : 1,
+	"primary_mail_host":"sharklasers.com",
+	"log_received_mails" : false
+    },
+    "servers" : [
+        {
+            "is_enabled" : true,
+            "host_name":"mail.test.com",
+            "max_size": 1000000,
+            "private_key_file":"_test/mail2.guerrillamail.com.key.pem",
+            "public_key_file":"_test/mail2.guerrillamail.com.cert.pem",
+            "timeout":180,
+            "listen_interface":"127.0.0.1:3535",
+            "start_tls_on":true,
+            "tls_always_on":false,
+            "max_clients": 1000,
+            "log_file" : "_test/testlog"
+        },
+        {
+            "is_enabled" : false,
+            "host_name":"enable.test.com",
+            "max_size": 1000000,
+            "private_key_file":"_test/mail2.guerrillamail.com.key.pem",
+            "public_key_file":"_test/mail2.guerrillamail.com.cert.pem",
+            "timeout":180,
+            "listen_interface":"127.0.0.1:2228",
+            "start_tls_on":true,
+            "tls_always_on":false,
+            "max_clients": 1000,
+            "log_file" : "_test/testlog"
+        }
+    ]
+}
+`
 const testPauseDuration = time.Millisecond * 600
 
 // reload config
@@ -242,28 +300,28 @@ func sigKill() {
 // make sure that we get all the config change events
 func TestCmdConfigChangeEvents(t *testing.T) {
 
-	oldconf := &CmdConfig{}
+	oldconf := &guerrilla.AppConfig{}
 	oldconf.Load([]byte(configJsonA))
 
-	newconf := &CmdConfig{}
+	newconf := &guerrilla.AppConfig{}
 	newconf.Load([]byte(configJsonB))
 
-	newerconf := &CmdConfig{}
+	newerconf := &guerrilla.AppConfig{}
 	newerconf.Load([]byte(configJsonC))
 
 	expectedEvents := map[guerrilla.Event]bool{
 		guerrilla.EventConfigBackendConfig: false,
-		guerrilla.EventConfigServerNew:   false,
+		guerrilla.EventConfigServerNew:     false,
 	}
 	mainlog, _ = log.GetLogger("off")
 
 	bcfg := backends.BackendConfig{"log_received_mails": true}
 	backend, err := backends.New(bcfg, mainlog)
-	app, err := guerrilla.New(&oldconf.AppConfig, backend, mainlog)
+	app, err := guerrilla.New(oldconf, backend, mainlog)
 	if err != nil {
-		//log.Info("Failed to create new app", err)
+		mainlog.Info("Failed to create new app", err)
 	}
-	toUnsubscribe := map[guerrilla.Event]func(c *CmdConfig){}
+	toUnsubscribe := map[guerrilla.Event]func(c *guerrilla.AppConfig){}
 	toUnsubscribeS := map[guerrilla.Event]func(c *guerrilla.ServerConfig){}
 
 	for event := range expectedEvents {
@@ -277,7 +335,7 @@ func TestCmdConfigChangeEvents(t *testing.T) {
 				app.Subscribe(event, f)
 				toUnsubscribeS[event] = f
 			} else {
-				f := func(c *CmdConfig) {
+				f := func(c *guerrilla.AppConfig) {
 					expectedEvents[e] = true
 				}
 				app.Subscribe(event, f)
@@ -288,8 +346,8 @@ func TestCmdConfigChangeEvents(t *testing.T) {
 	}
 
 	// emit events
-	newconf.emitChangeEvents(oldconf, app)
-	newerconf.emitChangeEvents(newconf, app)
+	newconf.EmitChangeEvents(oldconf, app)
+	newerconf.EmitChangeEvents(newconf, app)
 	// unsubscribe
 	for unevent, unfun := range toUnsubscribe {
 		app.Unsubscribe(unevent, unfun)
@@ -323,7 +381,6 @@ func TestServe(t *testing.T) {
 		serveWG.Done()
 	}()
 	time.Sleep(testPauseDuration)
-
 	data, err := ioutil.ReadFile("pidfile.pid")
 	if err != nil {
 		t.Error("error reading pidfile.pid", err)
@@ -372,8 +429,8 @@ func TestServe(t *testing.T) {
 	}
 
 	// cleanup
-	os.Truncate("_test/testlog", 0)
-	os.Remove("configJsonA.json")
+	//os.Truncate("_test/testlog", 0)
+	//os.Remove("configJsonA.json")
 	os.Remove("./pidfile.pid")
 	os.Remove("./pidfile2.pid")
 
@@ -466,7 +523,7 @@ func TestServerStartEvent(t *testing.T) {
 	time.Sleep(testPauseDuration)
 	// now change the config by adding a server
 	conf := &CmdConfig{}           // blank one
-	conf.load([]byte(configJsonA)) // load configJsonA
+	conf.Load([]byte(configJsonA)) // load configJsonA
 
 	newConf := conf // copy the cmdConfg
 	newConf.Servers[1].IsEnabled = true
@@ -536,7 +593,7 @@ func TestServerStopEvent(t *testing.T) {
 	time.Sleep(testPauseDuration)
 	// now change the config by enabling a server
 	conf := &CmdConfig{}           // blank one
-	conf.load([]byte(configJsonA)) // load configJsonA
+	conf.Load([]byte(configJsonA)) // load configJsonA
 
 	newConf := conf // copy the cmdConfg
 	newConf.Servers[1].IsEnabled = true
@@ -610,6 +667,7 @@ func TestServerStopEvent(t *testing.T) {
 
 func TestAllowedHostsEvent(t *testing.T) {
 	testcert.GenerateCert("mail2.guerrillamail.com", "", 365*24*time.Hour, false, 2048, "P256", "_test/")
+	os.Truncate("_test/testlog", 0)
 	mainlog, _ = log.GetLogger("_test/testlog")
 	// start the server by emulating the serve command
 	ioutil.WriteFile("configJsonD.json", []byte(configJsonD), 0644)
@@ -678,7 +736,6 @@ func TestAllowedHostsEvent(t *testing.T) {
 		}
 		conn.Close()
 	}
-
 	// send kill signal and wait for exit
 	sigKill()
 	serveWG.Wait()
@@ -693,7 +750,7 @@ func TestAllowedHostsEvent(t *testing.T) {
 		}
 	}
 	// cleanup
-	os.Truncate("_test/testlog", 0)
+	//os.Truncate("_test/testlog", 0)
 	os.Remove("configJsonD.json")
 	os.Remove("./pidfile.pid")
 
@@ -717,7 +774,7 @@ func TestTLSConfigEvent(t *testing.T) {
 	// start the server by emulating the serve command
 	ioutil.WriteFile("configJsonD.json", []byte(configJsonD), 0644)
 	conf := &CmdConfig{}           // blank one
-	conf.load([]byte(configJsonD)) // load configJsonD
+	conf.Load([]byte(configJsonD)) // load configJsonD
 	cmd := &cobra.Command{}
 	configPath = "configJsonD.json"
 	var serveWG sync.WaitGroup
@@ -938,7 +995,7 @@ func TestSetTimeoutEvent(t *testing.T) {
 	// start the server by emulating the serve command
 	ioutil.WriteFile("configJsonD.json", []byte(configJsonD), 0644)
 	conf := &CmdConfig{}           // blank one
-	conf.load([]byte(configJsonD)) // load configJsonD
+	conf.Load([]byte(configJsonD)) // load configJsonD
 	cmd := &cobra.Command{}
 	configPath = "configJsonD.json"
 	var serveWG sync.WaitGroup
@@ -952,7 +1009,7 @@ func TestSetTimeoutEvent(t *testing.T) {
 
 	// set the timeout to 1 second
 
-	newConf := conf // copy the cmdConfg
+	newConf := conf // copy
 	newConf.Servers[0].Timeout = 1
 	if jsonbytes, err := json.Marshal(newConf); err == nil {
 		ioutil.WriteFile("configJsonD.json", []byte(jsonbytes), 0644)
@@ -1087,4 +1144,76 @@ func TestDebugLevelChange(t *testing.T) {
 	os.Remove("configJsonD.json")
 	os.Remove("./pidfile.pid")
 
+}
+
+func TestMailDirDelivery(t *testing.T) {
+	ioutil.WriteFile("_test/config.json", []byte(configJsonE), 0644)
+	d := guerrilla.Daemon{}
+	d.AddProcessor("MailDir", maildir_processor.Processor)
+
+	err := d.ReadConfig("_test/config.json")
+	if err != nil {
+		t.Error("could not read config:",err)
+		return
+	}
+	err = d.Start()
+	if err != nil {
+		t.Error("could not start daemon:", err)
+		return
+	}
+
+	conn, err := net.Dial("tcp", "127.0.0.1:3535")
+	if err != nil {
+		// handle error
+		t.Error("cannot connect", err)
+		return
+	}
+	in := bufio.NewReader(conn)
+	str, err := in.ReadString('\n')
+	fmt.Println(str)
+	fmt.Fprint(conn, "HELO maildiranasaurustester\r\n")
+	str, err = in.ReadString('\n')
+	fmt.Println(str)
+	fmt.Fprint(conn, "MAIL FROM:<test@example.com>r\r\n")
+	str, err = in.ReadString('\n')
+	fmt.Println(str)
+	fmt.Fprint(conn, "RCPT TO:test@grr.la\r\n")
+	str, err = in.ReadString('\n')
+	fmt.Println(str)
+	fmt.Fprint(conn, "DATA\r\n")
+	str, err = in.ReadString('\n')
+	fmt.Println(str)
+	fmt.Fprint(conn, "Subject: Test subject\r\n")
+	fmt.Fprint(conn, "\r\n")
+	fmt.Fprint(conn, "A an email body\r\n")
+	fmt.Fprint(conn, ".\r\n")
+	str, err = in.ReadString('\n')
+	fmt.Println(str)
+
+	_, err = os.Stat("_test/Maildir/new");
+	if err != nil {
+		t.Error("cannot confirm the existance of _test/Maildir/new ",err)
+		return
+	}
+	if empty, err := isEmpty("_test/Maildir/new"); empty || err != nil {
+		t.Error("looks like no email was delivered, _test/Maildir/new looks empty")
+	}
+	// clean up
+	os.RemoveAll("_test/Maildir/new")
+
+
+}
+
+func isEmpty(name string) (bool, error) {
+	f, err := os.Open(name)
+	if err != nil {
+		return false, err
+	}
+	defer f.Close()
+
+	_, err = f.Readdirnames(1) // Or f.Readdir(1)
+	if err == io.EOF {
+		return true, nil
+	}
+	return false, err // Either not empty or error, suits both cases
 }
