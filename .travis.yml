@@ -8,5 +8,6 @@ go:
 
 script:
   - ./.travis.gofmt.sh
+  - make dependencies
   - make maildiranasaurus
   - go test ./cmd/maildiranasaurus

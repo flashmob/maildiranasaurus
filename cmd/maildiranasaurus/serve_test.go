@@ -1,16 +1,21 @@
 package main
 
 import (
+	"bufio"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	_ "fmt"
 	"github.com/flashmob/go-guerrilla"
 	"github.com/flashmob/go-guerrilla/backends"
 	"github.com/flashmob/go-guerrilla/log"
 	test "github.com/flashmob/go-guerrilla/tests"
 	"github.com/flashmob/go-guerrilla/tests/testcert"
+	"github.com/flashmob/maildir-processor"
 	"github.com/spf13/cobra"
+	"io"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"runtime"
@@ -19,11 +24,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-	"net"
-	"bufio"
-	"fmt"
-	"github.com/flashmob/maildir-processor"
-	"io"
 )
 
 var configJsonA = `
@@ -212,7 +212,6 @@ var configJsonD = `
 }
 `
 
-
 var configJsonE = `
 {
     "log_file" : "_test/testlog",
@@ -265,6 +264,7 @@ var configJsonE = `
     ]
 }
 `
+
 const testPauseDuration = time.Millisecond * 600
 
 // reload config
@@ -1153,7 +1153,7 @@ func TestMailDirDelivery(t *testing.T) {
 
 	err := d.ReadConfig("_test/config.json")
 	if err != nil {
-		t.Error("could not read config:",err)
+		t.Error("could not read config:", err)
 		return
 	}
 	err = d.Start()
@@ -1190,9 +1190,9 @@ func TestMailDirDelivery(t *testing.T) {
 	str, err = in.ReadString('\n')
 	fmt.Println(str)
 
-	_, err = os.Stat("_test/Maildir/new");
+	_, err = os.Stat("_test/Maildir/new")
 	if err != nil {
-		t.Error("cannot confirm the existance of _test/Maildir/new ",err)
+		t.Error("cannot confirm the existance of _test/Maildir/new ", err)
 		return
 	}
 	if empty, err := isEmpty("_test/Maildir/new"); empty || err != nil {
@@ -1200,7 +1200,6 @@ func TestMailDirDelivery(t *testing.T) {
 	}
 	// clean up
 	os.RemoveAll("_test/Maildir/new")
-
 
 }
 
