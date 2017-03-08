@@ -49,7 +49,7 @@ var (
 		Run:   serve,
 	}
 
-	signalChannel = make(chan os.Signal, 1) // for trapping SIG_HUP
+	signalChannel = make(chan os.Signal, 1) // for trapping SIGHUP and friends
 	mainlog       log.Logger
 
 	d guerrilla.Daemon
@@ -74,7 +74,13 @@ func init() {
 func sigHandler() {
 	// handle SIGHUP for reloading the configuration while running
 	signal.Notify(signalChannel,
-		syscall.SIGHUP, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGKILL)
+		syscall.SIGHUP,
+		syscall.SIGTERM,
+		syscall.SIGQUIT,
+		syscall.SIGINT,
+		syscall.SIGKILL,
+		syscall.SIGUSR1,
+	)
 	// Keep the daemon busy by waiting for signals to come
 	for sig := range signalChannel {
 		if sig == syscall.SIGHUP {
@@ -148,7 +154,7 @@ func (c *CmdConfig) emitChangeEvents(oldConfig *CmdConfig, app guerrilla.Guerril
 // ReadConfig which should be called at startup
 func readConfig(path string, pidFile string) error {
 
-	if err := d.ReadConfig(path); err != nil {
+	if _, err := d.LoadConfig(path); err != nil {
 		return err
 	}
 

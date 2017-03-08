@@ -1151,7 +1151,7 @@ func TestMailDirDelivery(t *testing.T) {
 	d := guerrilla.Daemon{}
 	d.AddProcessor("MailDir", maildir_processor.Processor)
 
-	err := d.ReadConfig("_test/config.json")
+	_, err := d.LoadConfig("_test/config.json")
 	if err != nil {
 		t.Error("could not read config:", err)
 		return
