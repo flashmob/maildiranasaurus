@@ -227,7 +227,8 @@ var configJsonE = `
     ],
 
     "backend_config": {
-        "process_stack": "HeadersParser|Debugger|Hasher|Header|MailDir",
+        "save_process": "HeadersParser|Debugger|Hasher|Header|MailDir",
+        "validate_process": "MailDir",
 	"maildir_user_map" : "test=-1:-1",
 	"maildir_path" : "_test/Maildir",
 	"save_workers_size" : 1,
@@ -367,6 +368,7 @@ func TestCmdConfigChangeEvents(t *testing.T) {
 
 // start server, change config, send SIG HUP, confirm that the pidfile changed & backend reloaded
 func TestServe(t *testing.T) {
+	os.MkdirAll("_test/", 0755)
 	testcert.GenerateCert("mail2.guerrillamail.com", "", 365*24*time.Hour, false, 2048, "P256", "_test/")
 
 	mainlog, _ = log.GetLogger("_test/testlog")

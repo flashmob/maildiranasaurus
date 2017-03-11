@@ -40,7 +40,8 @@ To enable maildir, customize your backend_config like so:
 
     "backend_config" :
     {
-        "process_stack": "HeadersParser|Debugger|Hasher|Header|MailDir",
+        "save_process": "HeadersParser|Debugger|Hasher|Header|MailDir",
+        "validate_process": "MailDir",
         "maildir_user_map" : "test=1002:2003,guerrilla=1001:1001,flashmob=1000:1000",
         "maildir_path" : "/home/[user]/Maildir",
         "save_workers_size" : 1,
@@ -48,8 +49,10 @@ To enable maildir, customize your backend_config like so:
         "log_received_mails" : false
     },
     
-`process_stack` - a line of stacked processors (decorators) that work on the email envelope. 
-Working from left to right, i.e. mail will be saved using the MailDir processor
+`save_process` - configures the _processors_ which work on saving the email envelope. 
+Working from left to right, i.e. in the end, mail will be saved using the MailDir processor
+
+`validate_process` - same as `save_process`, however these do validation of recipients
 
 `maildir_user_map` - user settings. `<username>=<user id>:<group id>` comma separated. Use -1 for `<id>` & `<group>` if you want to ignore these, otherwise get these numbers from /etc/passwd
 
@@ -68,7 +71,8 @@ Include the following fields in the "backend_config" object:
     "backend_config" :
     {
     
-        "process_stack": "HeadersParser|Debugger|Hasher|Header|MailDir|FastCGI",
+        "save_process": "HeadersParser|Debugger|Hasher|Header|MailDir|FastCGI",
+        "validate_process" : "MailDir|FastCGI",
     
         // [other fields here]
     

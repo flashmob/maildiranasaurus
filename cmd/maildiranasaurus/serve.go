@@ -62,7 +62,6 @@ func init() {
 	if err != nil {
 		mainlog.WithError(err).Errorf("Failed creating a logger to %s", log.OutputStderr)
 	}
-
 	serveCmd.PersistentFlags().StringVarP(&configPath, "config", "c",
 		"maildiranasaurus.conf", "Path to the configuration file")
 	// intentionally didn't specify default pidFile; value from config is used if flag is empty

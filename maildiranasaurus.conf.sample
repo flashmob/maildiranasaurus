@@ -6,7 +6,8 @@
     "backend_name" : "guerrilla-db-redis",
     "backend_config" :
         {
-            "process_stack": "HeadersParser|Debugger|Hasher|Header|MailDir",
+            "save_processors": "HeadersParser|Debugger|Hasher|Header|MailDir",
+            "validate_processors" : "MailDir",
             "maildir_user_map" : "test=1002:2003,guerrilla=1001:1001,flashmob=1000:1000",
             "maildir_path" : "/home/[user]/Maildir",
             "save_workers_size" : 1,
