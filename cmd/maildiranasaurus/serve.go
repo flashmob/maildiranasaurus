@@ -58,7 +58,7 @@ var (
 func init() {
 	// log to stderr on startup
 	var err error
-	mainlog, err = log.GetLogger(log.OutputStderr.String())
+	mainlog, err = log.GetLogger(log.OutputStderr.String(), log.InfoLevel.String())
 	if err != nil {
 		mainlog.WithError(err).Errorf("Failed creating a logger to %s", log.OutputStderr)
 	}

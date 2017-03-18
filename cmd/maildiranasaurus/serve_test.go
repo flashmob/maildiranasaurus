@@ -314,7 +314,7 @@ func TestCmdConfigChangeEvents(t *testing.T) {
 		guerrilla.EventConfigBackendConfig: false,
 		guerrilla.EventConfigServerNew:     false,
 	}
-	mainlog, _ = log.GetLogger("off")
+	mainlog, _ = log.GetLogger(log.OutputOff.String(), log.DebugLevel.String())
 
 	bcfg := backends.BackendConfig{"log_received_mails": true}
 	backend, err := backends.New(bcfg, mainlog)
@@ -371,7 +371,7 @@ func TestServe(t *testing.T) {
 	os.MkdirAll("_test/", 0755)
 	testcert.GenerateCert("mail2.guerrillamail.com", "", 365*24*time.Hour, false, 2048, "P256", "_test/")
 
-	mainlog, _ = log.GetLogger("_test/testlog")
+	mainlog, _ = log.GetLogger("_test/testlog", log.DebugLevel.String())
 
 	ioutil.WriteFile("configJsonA.json", []byte(configJsonA), 0644)
 	cmd := &cobra.Command{}
@@ -444,7 +444,7 @@ func TestServe(t *testing.T) {
 // then connect to it & HELO.
 func TestServerAddEvent(t *testing.T) {
 	testcert.GenerateCert("mail2.guerrillamail.com", "", 365*24*time.Hour, false, 2048, "P256", "_test/")
-	mainlog, _ = log.GetLogger("_test/testlog")
+	mainlog, _ = log.GetLogger("_test/testlog", log.DebugLevel.String())
 	// start the server by emulating the serve command
 	ioutil.WriteFile("configJsonA.json", []byte(configJsonA), 0644)
 	cmd := &cobra.Command{}
@@ -511,7 +511,7 @@ func TestServerAddEvent(t *testing.T) {
 // then connect to 127.0.0.1:2228 & HELO.
 func TestServerStartEvent(t *testing.T) {
 	testcert.GenerateCert("mail2.guerrillamail.com", "", 365*24*time.Hour, false, 2048, "P256", "_test/")
-	mainlog, _ = log.GetLogger("_test/testlog")
+	mainlog, _ = log.GetLogger("_test/testlog", log.DebugLevel.String())
 	// start the server by emulating the serve command
 	ioutil.WriteFile("configJsonA.json", []byte(configJsonA), 0644)
 	cmd := &cobra.Command{}
@@ -581,7 +581,7 @@ func TestServerStartEvent(t *testing.T) {
 
 func TestServerStopEvent(t *testing.T) {
 	testcert.GenerateCert("mail2.guerrillamail.com", "", 365*24*time.Hour, false, 2048, "P256", "_test/")
-	mainlog, _ = log.GetLogger("_test/testlog")
+	mainlog, _ = log.GetLogger("_test/testlog", log.DebugLevel.String())
 	// start the server by emulating the serve command
 	ioutil.WriteFile("configJsonA.json", []byte(configJsonA), 0644)
 	cmd := &cobra.Command{}
@@ -670,7 +670,7 @@ func TestServerStopEvent(t *testing.T) {
 func TestAllowedHostsEvent(t *testing.T) {
 	testcert.GenerateCert("mail2.guerrillamail.com", "", 365*24*time.Hour, false, 2048, "P256", "_test/")
 	os.Truncate("_test/testlog", 0)
-	mainlog, _ = log.GetLogger("_test/testlog")
+	mainlog, _ = log.GetLogger("_test/testlog", log.DebugLevel.String())
 	// start the server by emulating the serve command
 	ioutil.WriteFile("configJsonD.json", []byte(configJsonD), 0644)
 	conf := &CmdConfig{}           // blank one
@@ -772,7 +772,7 @@ func TestTLSConfigEvent(t *testing.T) {
 	if _, err := os.Stat("_test/mail2.guerrillamail.com.cert.pem"); err != nil {
 		t.Error("Did not create cert ", err)
 	}
-	mainlog, _ = log.GetLogger("_test/testlog")
+	mainlog, _ = log.GetLogger("_test/testlog", log.DebugLevel.String())
 	// start the server by emulating the serve command
 	ioutil.WriteFile("configJsonD.json", []byte(configJsonD), 0644)
 	conf := &CmdConfig{}           // blank one
@@ -914,7 +914,7 @@ func TestBadTLSStart(t *testing.T) {
 // Test config reload with a bad TLS config
 // It should ignore the config reload, keep running with old settings
 func TestBadTLSReload(t *testing.T) {
-	mainlog, _ = log.GetLogger("_test/testlog")
+	mainlog, _ = log.GetLogger("_test/testlog", log.DebugLevel.String())
 	// start with a good vert
 	testcert.GenerateCert("mail2.guerrillamail.com", "", 365*24*time.Hour, false, 2048, "P256", "_test/")
 	// start the server by emulating the serve command
@@ -992,7 +992,7 @@ func TestBadTLSReload(t *testing.T) {
 // Start with configJsonD.json
 
 func TestSetTimeoutEvent(t *testing.T) {
-	mainlog, _ = log.GetLogger("_test/testlog")
+	mainlog, _ = log.GetLogger("_test/testlog", log.DebugLevel.String())
 	testcert.GenerateCert("mail2.guerrillamail.com", "", 365*24*time.Hour, false, 2048, "P256", "_test/")
 	// start the server by emulating the serve command
 	ioutil.WriteFile("configJsonD.json", []byte(configJsonD), 0644)
