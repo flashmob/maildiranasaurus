@@ -47,25 +47,29 @@ var configJsonA = `
             "is_enabled" : true,
             "host_name":"mail.test.com",
             "max_size": 1000000,
-            "private_key_file":"_test/mail2.guerrillamail.com.key.pem",
-            "public_key_file":"_test/mail2.guerrillamail.com.cert.pem",
+			"tls" : {
+ 				"private_key_file":"_test/mail2.guerrillamail.com.key.pem",
+            	"public_key_file":"_test/mail2.guerrillamail.com.cert.pem",
+				"start_tls_on":true,
+            	"tls_always_on":false
+			},
             "timeout":180,
             "listen_interface":"127.0.0.1:3535",
-            "start_tls_on":true,
-            "tls_always_on":false,
             "max_clients": 1000,
             "log_file" : "_test/testlog"
         },
         {
             "is_enabled" : false,
             "host_name":"enable.test.com",
-            "max_size": 1000000,
-            "private_key_file":"_test/mail2.guerrillamail.com.key.pem",
-            "public_key_file":"_test/mail2.guerrillamail.com.cert.pem",
+            "max_size": 1000000, 
+			"tls" : {
+				"private_key_file":"_test/mail2.guerrillamail.com.key.pem",
+            	"public_key_file":"_test/mail2.guerrillamail.com.cert.pem",
+				"start_tls_on":true,
+            	"tls_always_on":false
+			},
             "timeout":180,
             "listen_interface":"127.0.0.1:2228",
-            "start_tls_on":true,
-            "tls_always_on":false,
             "max_clients": 1000,
             "log_file" : "_test/testlog"
         }
@@ -95,12 +99,14 @@ var configJsonB = `
             "is_enabled" : true,
             "host_name":"mail.test.com",
             "max_size": 1000000,
-            "private_key_file":"_test/mail2.guerrillamail.com.key.pem",
-            "public_key_file":"_test/mail2.guerrillamail.com.cert.pem",
+			"tls" : {
+				"private_key_file":"_test/mail2.guerrillamail.com.key.pem",
+				"public_key_file":"_test/mail2.guerrillamail.com.cert.pem",
+				"start_tls_on":true,
+            	"tls_always_on":false
+			},
             "timeout":180,
             "listen_interface":"127.0.0.1:3535",
-            "start_tls_on":true,
-            "tls_always_on":false,
             "max_clients": 1000,
             "log_file" : "_test/testlog"
         }
@@ -139,12 +145,14 @@ var configJsonC = `
             "is_enabled" : true,
             "host_name":"mail.test.com",
             "max_size": 1000000,
-            "private_key_file":"_test/mail2.guerrillamail.com.key.pem",
-            "public_key_file":"_test/mail2.guerrillamail.com.cert.pem",
+			"tls" : {
+				"private_key_file":"_test/mail2.guerrillamail.com.key.pem",
+				"public_key_file":"_test/mail2.guerrillamail.com.cert.pem",
+				"start_tls_on":true,
+				"tls_always_on":false
+			},
             "timeout":180,
             "listen_interface":"127.0.0.1:3535",
-            "start_tls_on":true,
-            "tls_always_on":false,
             "max_clients": 1000,
             "log_file" : "_test/testlog"
         },
@@ -152,12 +160,14 @@ var configJsonC = `
             "is_enabled" : true,
             "host_name":"mail.test.com",
             "max_size":1000000,
-            "private_key_file":"_test/mail2.guerrillamail.com.key.pem",
-            "public_key_file":"_test/mail2.guerrillamail.com.cert.pem",
+			"tls" : {
+				"private_key_file":"_test/mail2.guerrillamail.com.key.pem",
+            	"public_key_file":"_test/mail2.guerrillamail.com.cert.pem",
+				"start_tls_on":false,
+            	"tls_always_on":true
+			},
             "timeout":180,
             "listen_interface":"127.0.0.1:465",
-            "start_tls_on":false,
-            "tls_always_on":true,
             "max_clients":500,
             "log_file" : "_test/testlog"
         }
@@ -185,13 +195,15 @@ var configJsonD = `
         {
             "is_enabled" : true,
             "host_name":"mail.test.com",
-            "max_size": 1000000,
-            "private_key_file":"_test/mail2.guerrillamail.com.key.pem",
-            "public_key_file":"_test/mail2.guerrillamail.com.cert.pem",
+            "max_size": 1000000, 
+			"tls" : {
+				"private_key_file":"_test/mail2.guerrillamail.com.key.pem",
+            	"public_key_file":"_test/mail2.guerrillamail.com.cert.pem",
+ 				"start_tls_on":true,
+            	"tls_always_on":false
+			},
             "timeout":180,
             "listen_interface":"127.0.0.1:2552",
-            "start_tls_on":true,
-            "tls_always_on":false,
             "max_clients": 1000,
             "log_file" : "_test/testlog"
         },
@@ -199,12 +211,14 @@ var configJsonD = `
             "is_enabled" : true,
             "host_name":"secure.test.com",
             "max_size":1000000,
-            "private_key_file":"_test/mail2.guerrillamail.com.key.pem",
-            "public_key_file":"_test/mail2.guerrillamail.com.cert.pem",
+			"tls" : {
+				"private_key_file":"_test/mail2.guerrillamail.com.key.pem",
+            	"public_key_file":"_test/mail2.guerrillamail.com.cert.pem",
+				"start_tls_on":false,
+            	"tls_always_on":true
+			},
             "timeout":180,
             "listen_interface":"127.0.0.1:4655",
-            "start_tls_on":false,
-            "tls_always_on":true,
             "max_clients":500,
             "log_file" : "_test/testlog"
         }
@@ -229,23 +243,25 @@ var configJsonE = `
     "backend_config": {
         "save_process": "HeadersParser|Debugger|Hasher|Header|MailDir",
         "validate_process": "MailDir",
-	"maildir_user_map" : "test=-1:-1",
-	"maildir_path" : "_test/Maildir",
-	"save_workers_size" : 1,
-	"primary_mail_host":"sharklasers.com",
-	"log_received_mails" : false
+		"maildir_user_map" : "test=-1:-1",
+		"maildir_path" : "_test/Maildir",
+		"save_workers_size" : 1,
+		"primary_mail_host":"sharklasers.com",
+		"log_received_mails" : false
     },
     "servers" : [
         {
             "is_enabled" : true,
             "host_name":"mail.test.com",
             "max_size": 1000000,
-            "private_key_file":"_test/mail2.guerrillamail.com.key.pem",
-            "public_key_file":"_test/mail2.guerrillamail.com.cert.pem",
+			"tls" : {
+				"private_key_file":"_test/mail2.guerrillamail.com.key.pem",
+            	"public_key_file":"_test/mail2.guerrillamail.com.cert.pem",
+				"start_tls_on":true,
+            	"tls_always_on":false
+			},
             "timeout":180,
             "listen_interface":"127.0.0.1:3535",
-            "start_tls_on":true,
-            "tls_always_on":false,
             "max_clients": 1000,
             "log_file" : "_test/testlog"
         },
@@ -253,12 +269,15 @@ var configJsonE = `
             "is_enabled" : false,
             "host_name":"enable.test.com",
             "max_size": 1000000,
-            "private_key_file":"_test/mail2.guerrillamail.com.key.pem",
-            "public_key_file":"_test/mail2.guerrillamail.com.cert.pem",
+            
+			"tls" : {
+				"private_key_file":"_test/mail2.guerrillamail.com.key.pem",
+            	"public_key_file":"_test/mail2.guerrillamail.com.cert.pem",
+				"start_tls_on":true,
+            	"tls_always_on":false
+			},
             "timeout":180,
             "listen_interface":"127.0.0.1:2228",
-            "start_tls_on":true,
-            "tls_always_on":false,
             "max_clients": 1000,
             "log_file" : "_test/testlog"
         }

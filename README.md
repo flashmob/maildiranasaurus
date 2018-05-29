@@ -1,4 +1,6 @@
-Project status: WIP, Maildiranasaurus is still hatching! Almost done...
+Project status: Maildiranasaurus has hatched! 
+Q: Why did the dinosaur cross the road?
+A: Because the chicken wasn't invented yet. •ᴗ•
 
 
 [![Build Status](https://travis-ci.org/flashmob/MailDiranasaurus.svg?branch=master)](https://travis-ci.org/flashmob/MailDiranasaurus)
