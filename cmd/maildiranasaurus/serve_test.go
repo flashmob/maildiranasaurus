@@ -154,7 +154,7 @@ var configJsonC = `
             "timeout":180,
             "listen_interface":"127.0.0.1:3535",
             "max_clients": 1000,
-            "log_file" : "_test/testlog"
+            "log_file" : "./_test/testlog"
         },
         {
             "is_enabled" : true,
@@ -169,7 +169,7 @@ var configJsonC = `
             "timeout":180,
             "listen_interface":"127.0.0.1:465",
             "max_clients":500,
-            "log_file" : "_test/testlog"
+            "log_file" : "./_test/testlog"
         }
     ]
 }
@@ -205,7 +205,7 @@ var configJsonD = `
             "timeout":180,
             "listen_interface":"127.0.0.1:2552",
             "max_clients": 1000,
-            "log_file" : "_test/testlog"
+            "log_file" : "./_test/testlog"
         },
         {
             "is_enabled" : true,
@@ -220,7 +220,7 @@ var configJsonD = `
             "timeout":180,
             "listen_interface":"127.0.0.1:4655",
             "max_clients":500,
-            "log_file" : "_test/testlog"
+            "log_file" : "./_test/testlog"
         }
     ]
 }
@@ -263,7 +263,7 @@ var configJsonE = `
             "timeout":180,
             "listen_interface":"127.0.0.1:3535",
             "max_clients": 1000,
-            "log_file" : "_test/testlog"
+            "log_file" : "./_test/testlog"
         },
         {
             "is_enabled" : false,
@@ -279,7 +279,7 @@ var configJsonE = `
             "timeout":180,
             "listen_interface":"127.0.0.1:2228",
             "max_clients": 1000,
-            "log_file" : "_test/testlog"
+            "log_file" : "./_test/testlog"
         }
     ]
 }
@@ -381,16 +381,26 @@ func TestCmdConfigChangeEvents(t *testing.T) {
 		}
 	}
 	// cleanup
-	os.Truncate("_test/testlog", 0)
+	os.Truncate("./_test/testlog", 0)
 
+}
+
+func init() {
+	if err := os.MkdirAll("./_test/", 0755); err != nil {
+		wd, _ := os.Getwd()
+		fmt.Println("could not create test dir:", err, " wd:", wd)
+	}
 }
 
 // start server, change config, send SIG HUP, confirm that the pidfile changed & backend reloaded
 func TestServe(t *testing.T) {
-	os.MkdirAll("_test/", 0755)
+	//if err := os.MkdirAll("./_test/", 0755); err != nil {
+	//	wd, _ := os.Getwd()
+	//	t.Fatal("could not create test dir:", err, " wd:", wd)
+	//}
 	testcert.GenerateCert("mail2.guerrillamail.com", "", 365*24*time.Hour, false, 2048, "P256", "_test/")
 
-	mainlog, _ = log.GetLogger("_test/testlog", log.DebugLevel.String())
+	mainlog, _ = log.GetLogger("./_test/testlog", log.DebugLevel.String())
 
 	ioutil.WriteFile("configJsonA.json", []byte(configJsonA), 0644)
 	cmd := &cobra.Command{}
@@ -437,7 +447,7 @@ func TestServe(t *testing.T) {
 	serveWG.Wait()
 
 	// did backend started as expected?
-	fd, err := os.Open("_test/testlog")
+	fd, err := os.Open("./_test/testlog")
 	if err != nil {
 		t.Error(err)
 	}
@@ -463,7 +473,7 @@ func TestServe(t *testing.T) {
 // then connect to it & HELO.
 func TestServerAddEvent(t *testing.T) {
 	testcert.GenerateCert("mail2.guerrillamail.com", "", 365*24*time.Hour, false, 2048, "P256", "_test/")
-	mainlog, _ = log.GetLogger("_test/testlog", log.DebugLevel.String())
+	mainlog, _ = log.GetLogger("./_test/testlog", log.DebugLevel.String())
 	// start the server by emulating the serve command
 	ioutil.WriteFile("configJsonA.json", []byte(configJsonA), 0644)
 	cmd := &cobra.Command{}
@@ -508,7 +518,7 @@ func TestServerAddEvent(t *testing.T) {
 	serveWG.Wait()
 
 	// did backend started as expected?
-	fd, _ := os.Open("_test/testlog")
+	fd, _ := os.Open("./_test/testlog")
 	if read, err := ioutil.ReadAll(fd); err == nil {
 		logOutput := string(read)
 		//fmt.Println(logOutput)
@@ -517,7 +527,7 @@ func TestServerAddEvent(t *testing.T) {
 		}
 	}
 	// cleanup
-	os.Truncate("_test/testlog", 0)
+	os.Truncate("./_test/testlog", 0)
 	os.Remove("configJsonA.json")
 	os.Remove("./pidfile.pid")
 
@@ -530,7 +540,7 @@ func TestServerAddEvent(t *testing.T) {
 // then connect to 127.0.0.1:2228 & HELO.
 func TestServerStartEvent(t *testing.T) {
 	testcert.GenerateCert("mail2.guerrillamail.com", "", 365*24*time.Hour, false, 2048, "P256", "_test/")
-	mainlog, _ = log.GetLogger("_test/testlog", log.DebugLevel.String())
+	mainlog, _ = log.GetLogger("./_test/testlog", log.DebugLevel.String())
 	// start the server by emulating the serve command
 	ioutil.WriteFile("configJsonA.json", []byte(configJsonA), 0644)
 	cmd := &cobra.Command{}
@@ -574,7 +584,7 @@ func TestServerStartEvent(t *testing.T) {
 	sigKill()
 	serveWG.Wait()
 	// did backend started as expected?
-	fd, _ := os.Open("_test/testlog")
+	fd, _ := os.Open("./_test/testlog")
 	if read, err := ioutil.ReadAll(fd); err == nil {
 		logOutput := string(read)
 		//fmt.Println(logOutput)
@@ -583,7 +593,7 @@ func TestServerStartEvent(t *testing.T) {
 		}
 	}
 	// cleanup
-	os.Truncate("_test/testlog", 0)
+	os.Truncate("./_test/testlog", 0)
 	os.Remove("configJsonA.json")
 	os.Remove("./pidfile.pid")
 
@@ -600,7 +610,7 @@ func TestServerStartEvent(t *testing.T) {
 
 func TestServerStopEvent(t *testing.T) {
 	testcert.GenerateCert("mail2.guerrillamail.com", "", 365*24*time.Hour, false, 2048, "P256", "_test/")
-	mainlog, _ = log.GetLogger("_test/testlog", log.DebugLevel.String())
+	mainlog, _ = log.GetLogger("./_test/testlog", log.DebugLevel.String())
 	// start the server by emulating the serve command
 	ioutil.WriteFile("configJsonA.json", []byte(configJsonA), 0644)
 	cmd := &cobra.Command{}
@@ -663,7 +673,7 @@ func TestServerStopEvent(t *testing.T) {
 	serveWG.Wait()
 
 	// did backend started as expected?
-	fd, _ := os.Open("_test/testlog")
+	fd, _ := os.Open("./_test/testlog")
 	if read, err := ioutil.ReadAll(fd); err == nil {
 		logOutput := string(read)
 		//fmt.Println(logOutput)
@@ -673,7 +683,7 @@ func TestServerStopEvent(t *testing.T) {
 	}
 
 	// cleanup
-	os.Truncate("_test/testlog", 0)
+	os.Truncate("./_test/testlog", 0)
 	os.Remove("configJsonA.json")
 	os.Remove("./pidfile.pid")
 
@@ -688,8 +698,8 @@ func TestServerStopEvent(t *testing.T) {
 
 func TestAllowedHostsEvent(t *testing.T) {
 	testcert.GenerateCert("mail2.guerrillamail.com", "", 365*24*time.Hour, false, 2048, "P256", "_test/")
-	os.Truncate("_test/testlog", 0)
-	mainlog, _ = log.GetLogger("_test/testlog", log.DebugLevel.String())
+	os.Truncate("./_test/testlog", 0)
+	mainlog, _ = log.GetLogger("./_test/testlog", log.DebugLevel.String())
 	// start the server by emulating the serve command
 	ioutil.WriteFile("configJsonD.json", []byte(configJsonD), 0644)
 	conf := &CmdConfig{}           // blank one
@@ -761,7 +771,7 @@ func TestAllowedHostsEvent(t *testing.T) {
 	sigKill()
 	serveWG.Wait()
 	// did backend started as expected?
-	fd, _ := os.Open("_test/testlog")
+	fd, _ := os.Open("./_test/testlog")
 	if read, err := ioutil.ReadAll(fd); err == nil {
 		logOutput := string(read)
 		//fmt.Println(logOutput)
@@ -771,7 +781,7 @@ func TestAllowedHostsEvent(t *testing.T) {
 		}
 	}
 	// cleanup
-	//os.Truncate("_test/testlog", 0)
+	//os.Truncate("./_test/testlog", 0)
 	os.Remove("configJsonD.json")
 	os.Remove("./pidfile.pid")
 
@@ -788,10 +798,10 @@ func TestTLSConfigEvent(t *testing.T) {
 	// pause for generated cert to output on slow machines
 	time.Sleep(testPauseDuration)
 	// did cert output?
-	if _, err := os.Stat("_test/mail2.guerrillamail.com.cert.pem"); err != nil {
+	if _, err := os.Stat("./_test/mail2.guerrillamail.com.cert.pem"); err != nil {
 		t.Error("Did not create cert ", err)
 	}
-	mainlog, _ = log.GetLogger("_test/testlog", log.DebugLevel.String())
+	mainlog, _ = log.GetLogger("./_test/testlog", log.DebugLevel.String())
 	// start the server by emulating the serve command
 	ioutil.WriteFile("configJsonD.json", []byte(configJsonD), 0644)
 	conf := &CmdConfig{}           // blank one
@@ -841,10 +851,10 @@ func TestTLSConfigEvent(t *testing.T) {
 	}
 	testTlsHandshake()
 
-	if err := os.Remove("_test/mail2.guerrillamail.com.cert.pem"); err != nil {
+	if err := os.Remove("./_test/mail2.guerrillamail.com.cert.pem"); err != nil {
 		t.Error("could not remove cert", err)
 	}
-	if err := os.Remove("_test/mail2.guerrillamail.com.key.pem"); err != nil {
+	if err := os.Remove("./_test/mail2.guerrillamail.com.key.pem"); err != nil {
 		t.Error("could not remove key", err)
 	}
 
@@ -853,7 +863,7 @@ func TestTLSConfigEvent(t *testing.T) {
 	// pause for generated cert to output
 	time.Sleep(testPauseDuration)
 	// did cert output?
-	if _, err := os.Stat("_test/mail2.guerrillamail.com.cert.pem"); err != nil {
+	if _, err := os.Stat("./_test/mail2.guerrillamail.com.cert.pem"); err != nil {
 		t.Error("Did not create cert ", err)
 	}
 
@@ -867,7 +877,7 @@ func TestTLSConfigEvent(t *testing.T) {
 	sigKill()
 	serveWG.Wait()
 	// did backend started as expected?
-	fd, _ := os.Open("_test/testlog")
+	fd, _ := os.Open("./_test/testlog")
 	if read, err := ioutil.ReadAll(fd); err == nil {
 		logOutput := string(read)
 		//fmt.Println(logOutput)
@@ -877,7 +887,7 @@ func TestTLSConfigEvent(t *testing.T) {
 	}
 
 	// cleanup
-	os.Truncate("_test/testlog", 0)
+	os.Truncate("./_test/testlog", 0)
 	os.Remove("configJsonD.json")
 	os.Remove("./pidfile.pid")
 
@@ -925,7 +935,7 @@ func TestBadTLSStart(t *testing.T) {
 	}
 	t.Error("Server started with a bad TLS config, was expecting exit status 1")
 	// cleanup
-	os.Truncate("_test/testlog", 0)
+	os.Truncate("./_test/testlog", 0)
 	os.Remove("configJsonD.json")
 	os.Remove("./pidfile.pid")
 }
@@ -933,9 +943,9 @@ func TestBadTLSStart(t *testing.T) {
 // Test config reload with a bad TLS config
 // It should ignore the config reload, keep running with old settings
 func TestBadTLSReload(t *testing.T) {
-	mainlog, _ = log.GetLogger("_test/testlog", log.DebugLevel.String())
+	mainlog, _ = log.GetLogger("./_test/testlog", log.DebugLevel.String())
 	// start with a good vert
-	testcert.GenerateCert("mail2.guerrillamail.com", "", 365*24*time.Hour, false, 2048, "P256", "_test/")
+	testcert.GenerateCert("mail2.guerrillamail.com", "", 365*24*time.Hour, false, 2048, "P256", "./_test/")
 	// start the server by emulating the serve command
 	ioutil.WriteFile("configJsonD.json", []byte(configJsonD), 0644)
 	conf := &CmdConfig{}           // blank one
@@ -993,7 +1003,7 @@ func TestBadTLSReload(t *testing.T) {
 	serveWG.Wait()
 
 	// did config reload fail as expected?
-	fd, _ := os.Open("_test/testlog")
+	fd, _ := os.Open("./_test/testlog")
 	if read, err := ioutil.ReadAll(fd); err == nil {
 		logOutput := string(read)
 		//fmt.Println(logOutput)
@@ -1002,7 +1012,7 @@ func TestBadTLSReload(t *testing.T) {
 		}
 	}
 	// cleanup
-	os.Truncate("_test/testlog", 0)
+	os.Truncate("./_test/testlog", 0)
 	os.Remove("configJsonD.json")
 	os.Remove("./pidfile.pid")
 }
@@ -1011,8 +1021,8 @@ func TestBadTLSReload(t *testing.T) {
 // Start with configJsonD.json
 
 func TestSetTimeoutEvent(t *testing.T) {
-	mainlog, _ = log.GetLogger("_test/testlog", log.DebugLevel.String())
-	testcert.GenerateCert("mail2.guerrillamail.com", "", 365*24*time.Hour, false, 2048, "P256", "_test/")
+	mainlog, _ = log.GetLogger("./_test/testlog", log.DebugLevel.String())
+	testcert.GenerateCert("mail2.guerrillamail.com", "", 365*24*time.Hour, false, 2048, "P256", "./_test/")
 	// start the server by emulating the serve command
 	ioutil.WriteFile("configJsonD.json", []byte(configJsonD), 0644)
 	conf := &CmdConfig{}           // blank one
@@ -1070,7 +1080,7 @@ func TestSetTimeoutEvent(t *testing.T) {
 	sigKill()
 	serveWG.Wait()
 	// did backend started as expected?
-	fd, _ := os.Open("_test/testlog")
+	fd, _ := os.Open("./_test/testlog")
 	if read, err := ioutil.ReadAll(fd); err == nil {
 		logOutput := string(read)
 		//fmt.Println(logOutput)
@@ -1079,7 +1089,7 @@ func TestSetTimeoutEvent(t *testing.T) {
 		}
 	}
 	// cleanup
-	os.Truncate("_test/testlog", 0)
+	os.Truncate("./_test/testlog", 0)
 	os.Remove("configJsonD.json")
 	os.Remove("./pidfile.pid")
 
@@ -1089,8 +1099,8 @@ func TestSetTimeoutEvent(t *testing.T) {
 // Start in log_level = debug
 // Load config & start server
 func TestDebugLevelChange(t *testing.T) {
-	//mainlog, _ = log.GetLogger("_test/testlog")
-	testcert.GenerateCert("mail2.guerrillamail.com", "", 365*24*time.Hour, false, 2048, "P256", "_test/")
+	//mainlog, _ = log.GetLogger("./_test/testlog")
+	testcert.GenerateCert("mail2.guerrillamail.com", "", 365*24*time.Hour, false, 2048, "P256", "./_test/")
 	// start the server by emulating the serve command
 	ioutil.WriteFile("configJsonD.json", []byte(configJsonD), 0644)
 	conf := &CmdConfig{}           // blank one
@@ -1148,7 +1158,7 @@ func TestDebugLevelChange(t *testing.T) {
 	sigKill()
 	serveWG.Wait()
 	// did backend started as expected?
-	fd, _ := os.Open("_test/testlog")
+	fd, _ := os.Open("./_test/testlog")
 	if read, err := ioutil.ReadAll(fd); err == nil {
 		logOutput := string(read)
 		//fmt.Println(logOutput)
@@ -1161,18 +1171,18 @@ func TestDebugLevelChange(t *testing.T) {
 		}
 	}
 	// cleanup
-	os.Truncate("_test/testlog", 0)
+	os.Truncate("./_test/testlog", 0)
 	os.Remove("configJsonD.json")
 	os.Remove("./pidfile.pid")
 
 }
 
 func TestMailDirDelivery(t *testing.T) {
-	ioutil.WriteFile("_test/config.json", []byte(configJsonE), 0644)
+	ioutil.WriteFile("./_test/config.json", []byte(configJsonE), 0644)
 	d := guerrilla.Daemon{}
 	d.AddProcessor("MailDir", maildir_processor.Processor)
 
-	_, err := d.LoadConfig("_test/config.json")
+	_, err := d.LoadConfig("./_test/config.json")
 	if err != nil {
 		t.Error("could not read config:", err)
 		return
@@ -1211,16 +1221,16 @@ func TestMailDirDelivery(t *testing.T) {
 	str, err = in.ReadString('\n')
 	fmt.Println(str)
 
-	_, err = os.Stat("_test/Maildir/new")
+	_, err = os.Stat("./_test/Maildir/new")
 	if err != nil {
 		t.Error("cannot confirm the existance of _test/Maildir/new ", err)
 		return
 	}
-	if empty, err := isEmpty("_test/Maildir/new"); empty || err != nil {
+	if empty, err := isEmpty("./_test/Maildir/new"); empty || err != nil {
 		t.Error("looks like no email was delivered, _test/Maildir/new looks empty")
 	}
 	// clean up
-	os.RemoveAll("_test/Maildir/new")
+	os.RemoveAll("./_test/Maildir/new")
 
 }
 
