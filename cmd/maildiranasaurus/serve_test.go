@@ -28,7 +28,7 @@ import (
 
 var configJsonA = `
 {
-    "log_file" : "_test/testlog",
+    "log_file" : "./_test/testlog",
     "log_level" : "debug",
     "pid_file" : "./pidfile.pid",
     "allowed_hosts": [
@@ -80,7 +80,7 @@ var configJsonA = `
 // backend config changed, log_received_mails is false
 var configJsonB = `
 {
-    "log_file" : "_test/testlog",
+    "log_file" : "./_test/testlog",
     "log_level" : "debug",
     "pid_file" : "./pidfile2.pid",
     "allowed_hosts": [
@@ -117,7 +117,7 @@ var configJsonB = `
 // backend_name changed, is guerrilla-redis-db + added a server
 var configJsonC = `
 {
-    "log_file" : "_test/testlog",
+    "log_file" : "./_test/testlog",
     "log_level" : "debug",
     "pid_file" : "./pidfile.pid",
     "allowed_hosts": [
@@ -178,7 +178,7 @@ var configJsonC = `
 // adds 127.0.0.1:4655, a secure server
 var configJsonD = `
 {
-    "log_file" : "_test/testlog",
+    "log_file" : "./_test/testlog",
     "log_level" : "debug",
     "pid_file" : "./pidfile.pid",
     "allowed_hosts": [
@@ -228,7 +228,7 @@ var configJsonD = `
 
 var configJsonE = `
 {
-    "log_file" : "_test/testlog",
+    "log_file" : "./_test/testlog",
     "log_level" : "debug",
     "pid_file" : "./pidfile.pid",
     "allowed_hosts": [
